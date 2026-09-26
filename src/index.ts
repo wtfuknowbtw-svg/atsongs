@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { config } from './config';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { adminSetupService } from './services/adminSetupService';

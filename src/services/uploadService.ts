@@ -1,4 +1,4 @@
-import { Track, Album } from '../models';
+import { Track } from '../models';
 import { storageService } from './storageService';
 import { metadataService, AudioMetadata } from './metadataService';
 import { fileValidationService } from './fileValidationService';
@@ -122,13 +122,13 @@ export class UploadService {
       );
 
       logger.info('Track uploaded successfully', { 
-        trackId: track._id, 
-        title: track.title,
+        trackId: track!._id, 
+        title: track!.title,
         userId 
       });
 
       return {
-        track: this.sanitizeTrack(track),
+        track: this.sanitizeTrack(track!),
         metadata,
       };
     } catch (error) {

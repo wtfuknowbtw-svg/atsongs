@@ -39,8 +39,8 @@ export class MetadataService {
         albumArtist: common.albumartist?.[0],
         genre: common.genre?.[0],
         year: common.year,
-        trackNumber: common.track?.no,
-        discNumber: common.disk?.no,
+        trackNumber: common.track?.no ?? undefined,
+        discNumber: common.disk?.no ?? undefined,
         duration: format.duration,
         bitrate: format.bitrate,
         codec: format.codec,
@@ -58,11 +58,11 @@ export class MetadataService {
       return result;
     } catch (error) {
       console.error('Error extracting metadata:', error);
-      return this.getBasicMetadata(filename, fileBuffer);
+      return this.getBasicMetadata(filename);
     }
   }
 
-  private getBasicMetadata(filename: string, fileBuffer: Buffer): AudioMetadata {
+  private getBasicMetadata(filename: string): AudioMetadata {
     const extension = filename.split('.').pop()?.toLowerCase() || '';
     
     return {

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
-import { errorCodes } from '../utils/apiResponse';
+import { errorCodes, errorResponse } from '../utils/apiResponse';
 
+export { errorCodes };
 export class AppError extends Error {
   constructor(
     public statusCode: number,
@@ -41,7 +42,7 @@ export const errorHandler = (
     ? 'An unexpected error occurred' 
     : err.message;
 
-  res.status(statusCode).json(errorResponse(code, message));
+  return res.status(statusCode).json(errorResponse(code, message));
 };
 
 export const notFoundHandler = (req: Request, res: Response) => {

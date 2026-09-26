@@ -14,7 +14,7 @@ export class AdminController {
         throw new AppError(400, errorCodes.FILE_UPLOAD_ERROR, 'No file provided');
       }
 
-      const userId = req.user?.id;
+      const userId = req.user?.id as string;
       const result = await uploadService.uploadTrack(req.file, userId);
 
       res.status(201).json(successResponse(result));

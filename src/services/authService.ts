@@ -127,13 +127,13 @@ export class AuthService {
     const accessToken = jwt.sign(
       { id: userId, email, role },
       config.jwt.secret,
-      { expiresIn: config.jwt.accessTokenExpiry }
+      { expiresIn: config.jwt.accessTokenExpiry as any }
     );
 
     const refreshToken = jwt.sign(
       { id: userId, email, role },
       config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshTokenExpiry }
+      { expiresIn: config.jwt.refreshTokenExpiry as any }
     );
 
     return { accessToken, refreshToken };

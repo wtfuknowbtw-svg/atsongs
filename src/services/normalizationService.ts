@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Artist, Album, Genre } from '../models';
 import { AppError, errorCodes } from '../middleware/errorHandler';
 import logger from '../utils/logger';
