@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: stitch-music-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false   # Set this in Render dashboard → paste your MongoDB Atlas URI
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRY
+        value: 15m
+      - key: JWT_REFRESH_EXPIRY
+        value: 7d
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: LOG_LEVEL
+        value: info
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX
+        value: 100
+      # Optional — add Cloudinary keys in Render dashboard if you need music upload
+      # - key: CLOUDINARY_CLOUD_NAME
+      # - key: CLOUDINARY_API_KEY
+      # - key: CLOUDINARY_API_SECRET
