@@ -114,12 +114,13 @@ export class FileValidationService {
 
   throwIfInvalid(validationResult: ValidationResult): void {
     if (!validationResult.isValid) {
-      if (validationResult.error?.includes('size')) {
-        throw new AppError(413, errorCodes.FILE_TOO_LARGE, validationResult.error);
-      } else if (validationResult.error?.includes('format')) {
-        throw new AppError(400, errorCodes.UNSUPPORTED_FORMAT, validationResult.error);
+      const error = validationResult.error || 'File validation failed';
+      if (error.includes('size')) {
+        throw new AppError(413, errorCodes.FILE_TOO_LARGE, error);
+      } else if (error.includes('format')) {
+        throw new AppError(400, errorCodes.UNSUPPORTED_FORMAT, error);
       } else {
-        throw new AppError(400, errorCodes.FILE_UPLOAD_ERROR, validationResult.error);
+        throw new AppError(400, errorCodes.FILE_UPLOAD_ERROR, error);
       }
     }
   }
