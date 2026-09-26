@@ -38,6 +38,4 @@ const lyricsSchema = new Schema<ILyrics>(
   }
 );
 
-lyricsSchema.index({ trackId: 1 });
-
 export const Lyrics = mongoose.model<ILyrics>('Lyrics', lyricsSchema);

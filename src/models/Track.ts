@@ -160,7 +160,6 @@ const trackSchema = new Schema<ITrack>(
   }
 );
 
-trackSchema.index({ fileHash: 1 });
 trackSchema.index({ artist: 1, album: 1 });
 trackSchema.index({ artistId: 1 });
 trackSchema.index({ albumId: 1 });

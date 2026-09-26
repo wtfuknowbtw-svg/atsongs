@@ -27,7 +27,7 @@ const startServer = async () => {
     
     await adminSetupService.ensureAdminExists();
 
-    const server = app.listen(config.port, () => {
+    const server = app.listen(config.port, '0.0.0.0', () => {
       logger.info(`Server running on port ${config.port}`);
       logger.info(`Environment: ${config.env}`);
     });
@@ -52,6 +52,7 @@ const startServer = async () => {
 
   } catch (error) {
     logger.error('Failed to start server:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
