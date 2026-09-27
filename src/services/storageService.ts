@@ -85,7 +85,8 @@ class CloudinaryStorageService implements StorageService {
       };
     } catch (error) {
       logger.error('Error uploading audio to Cloudinary:', error);
-      throw new Error('Failed to upload audio file');
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to upload audio file: ${message}`);
     }
   }
 

@@ -18,10 +18,21 @@ export class UploadService {
 
     const fileHash = metadataService.calculateFileHash(file.buffer);
     
-    const existingTrack = await Track.findOne({ fileHash, status: 'active' });
+    const existingTrack = await Track.findOne({
+      fileHash,
+      status: 'active',
+      importStatus: { $ne: 'failed' },
+    });
     if (existingTrack) {
       throw new AppError(409, errorCodes.DUPLICATE_TRACK, 'A track with this file content already exists');
     }
+
+    // Stale failed/soft-deleted rows still occupy the unique fileHash index;
+    // remove them so the same file can be re-uploaded.
+    await Track.deleteMany({
+      fileHash,
+      $or: [{ status: 'deleted' }, { importStatus: 'failed' }],
+    });
 
     let cloudinaryPublicId: string | null = null;
     let cloudinaryArtworkPublicId: string | null = null;
