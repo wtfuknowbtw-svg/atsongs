@@ -33,16 +33,19 @@ export class AdminController {
         throw new AppError(404, errorCodes.NOT_FOUND, 'Track not found');
       }
 
-      // Delete audio from Cloudinary
-      const audioDeleted = await storageService.deleteResource(
-        track.cloudinaryPublicId,
-        track.cloudinaryResourceType
-      );
+      // Delete audio from Cloudinary if it exists
+      let audioDeleted = true;
+      if (track.cloudinaryPublicId) {
+        audioDeleted = await storageService.deleteResource(
+          track.cloudinaryPublicId,
+          track.cloudinaryResourceType
+        );
 
-      if (!audioDeleted) {
-        logger.warn('Failed to delete Cloudinary audio resource', { 
-          publicId: track.cloudinaryPublicId 
-        });
+        if (!audioDeleted) {
+          logger.warn('Failed to delete Cloudinary audio resource', { 
+            publicId: track.cloudinaryPublicId 
+          });
+        }
       }
 
       // Handle artwork deletion if it's not shared

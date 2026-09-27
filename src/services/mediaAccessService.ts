@@ -11,7 +11,7 @@ export class MediaAccessService {
       importStatus: 'ready'
     });
     
-    if (!track) {
+    if (!track || !track.cloudinaryPublicId) {
       throw new AppError(404, errorCodes.NOT_FOUND, 'Track not found or not ready for streaming');
     }
 
@@ -40,7 +40,7 @@ export class MediaAccessService {
       importStatus: 'ready'
     });
     
-    if (!track) {
+    if (!track || !track.cloudinaryPublicId) {
       throw new AppError(404, errorCodes.NOT_FOUND, 'Track not found or not ready for download');
     }
 

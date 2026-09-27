@@ -21,10 +21,10 @@ export interface ITrack extends Document {
   fileSize: number;
   artwork?: string;
   cloudinaryArtworkPublicId?: string;
-  cloudinaryPublicId: string;
-  cloudinaryResourceType: string;
-  cloudinaryFormat: string;
-  cloudinaryVersion: string;
+  cloudinaryPublicId?: string;
+  cloudinaryResourceType?: string;
+  cloudinaryFormat?: string;
+  cloudinaryVersion?: string;
   originalFilename: string;
   fileHash: string;
   importStatus: 'uploading' | 'processing' | 'ready' | 'failed';
@@ -112,20 +112,21 @@ const trackSchema = new Schema<ITrack>(
     },
     cloudinaryPublicId: {
       type: String,
-      required: true,
+      required: false,
       unique: true,
+      sparse: true,
     },
     cloudinaryResourceType: {
       type: String,
-      required: true,
+      required: false,
     },
     cloudinaryFormat: {
       type: String,
-      required: true,
+      required: false,
     },
     cloudinaryVersion: {
       type: String,
-      required: true,
+      required: false,
     },
     originalFilename: {
       type: String,
