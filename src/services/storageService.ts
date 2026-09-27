@@ -59,10 +59,6 @@ class CloudinaryStorageService implements StorageService {
             resource_type: 'video',
             folder,
             chunk_size: 6000000,
-            eager: [
-              { streaming_profile: 'full_hd', format: 'mp3' }
-            ],
-            eager_async: true,
           },
           (error, result) => {
             if (error) reject(error);
