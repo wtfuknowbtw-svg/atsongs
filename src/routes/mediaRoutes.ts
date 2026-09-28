@@ -7,5 +7,6 @@ const router = Router();
 router.get('/tracks/:id/stream', authenticate, mediaController.getStreamUrl.bind(mediaController));
 router.get('/tracks/:id/download', authenticate, mediaController.getDownloadUrl.bind(mediaController));
 router.get('/tracks/:id/artwork', mediaController.getArtworkUrl.bind(mediaController));
+router.get('/albums/:id/artwork', mediaController.getAlbumArtworkUrl.bind(mediaController));
 
 export default router;

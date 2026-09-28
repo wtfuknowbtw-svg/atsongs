@@ -34,8 +34,8 @@ export class UploadService {
       $or: [{ status: 'deleted' }, { importStatus: 'failed' }],
     });
 
-    let cloudinaryPublicId: string | null = null;
-    let cloudinaryArtworkPublicId: string | null = null;
+    let audioStorageKey: string | null = null;
+    let artworkStorageKey: string | null = null;
     let trackId: string | null = null;
 
     try {
@@ -53,14 +53,15 @@ export class UploadService {
       });
       trackId = tempTrack._id.toString();
 
-      // Upload audio to Cloudinary
-      logger.info('Uploading audio to Cloudinary', { trackId });
+      // Upload audio to B2 (private bucket). Key is deterministic:
+      // audio/<placeholderTrackId>.<ext> so retries overwrite, never orphan.
+      logger.info('Uploading audio to B2 storage', { trackId });
       const uploadResult = await storageService.uploadAudio(
         file.buffer,
         file.originalname,
-        'music/audio'
+        trackId
       );
-      cloudinaryPublicId = uploadResult.publicId;
+      audioStorageKey = uploadResult.storageKey;
 
       // Update status to processing
       await Track.findByIdAndUpdate(trackId, { importStatus: 'processing' });
@@ -77,23 +78,25 @@ export class UploadService {
       );
 
       // Handle embedded artwork
-      let artworkUrl: string | undefined;
+      let artworkKey: string | undefined;
       if (metadata.hasArtwork && metadata.artworkBuffer) {
         logger.info('Uploading embedded artwork', { trackId });
         const artworkResult = await this.uploadArtwork(
           metadata.artworkBuffer,
           file.originalname,
-          metadata.artworkFormat
+          metadata.artworkFormat,
+          trackId
         );
-        cloudinaryArtworkPublicId = artworkResult.publicId;
-        artworkUrl = artworkResult.secureUrl;
+        artworkStorageKey = artworkResult.storageKey;
+        artworkKey = artworkStorageKey;
 
-        // Update album artwork if album exists
+        // Remember the key on the album so album artwork can be resolved later.
+        // Album.artwork (legacy public Cloudinary URL) is left untouched so old
+        // albums keep rendering until they are purged.
         if (normalizedMetadata.albumId) {
           await normalizationService.updateAlbumArtwork(
             normalizedMetadata.albumId,
-            artworkUrl,
-            cloudinaryArtworkPublicId
+            artworkKey
           );
         }
       }
@@ -120,12 +123,8 @@ export class UploadService {
           sampleRate: metadata.sampleRate,
           channels: metadata.channels,
           fileSize: file.size,
-          artwork: artworkUrl,
-          cloudinaryArtworkPublicId,
-          cloudinaryPublicId: uploadResult.publicId,
-          cloudinaryResourceType: uploadResult.resourceType,
-          cloudinaryFormat: uploadResult.format,
-          cloudinaryVersion: uploadResult.version,
+          storageKey: uploadResult.storageKey,
+          artworkKey,
           metadataStatus: metadata.duration ? 'extracted' : 'pending',
           importStatus: 'ready',
         },
@@ -153,22 +152,22 @@ export class UploadService {
         });
       }
 
-      // Cleanup Cloudinary assets on failure
-      if (cloudinaryPublicId) {
+      // Cleanup B2 objects on failure (log keys only, never URLs/secrets)
+      if (audioStorageKey) {
         try {
-          await storageService.deleteResource(cloudinaryPublicId, 'video');
-          logger.info('Cleaned up Cloudinary audio after failure', { publicId: cloudinaryPublicId });
+          await storageService.deleteObject(audioStorageKey);
+          logger.info('Cleaned up B2 audio after failure', { storageKey: audioStorageKey });
         } catch (cleanupError) {
-          logger.error('Failed to cleanup Cloudinary audio:', cleanupError);
+          logger.error('Failed to cleanup B2 audio:', cleanupError);
         }
       }
 
-      if (cloudinaryArtworkPublicId) {
+      if (artworkStorageKey) {
         try {
-          await storageService.deleteResource(cloudinaryArtworkPublicId, 'image');
-          logger.info('Cleaned up Cloudinary artwork after failure', { publicId: cloudinaryArtworkPublicId });
+          await storageService.deleteObject(artworkStorageKey);
+          logger.info('Cleaned up B2 artwork after failure', { storageKey: artworkStorageKey });
         } catch (cleanupError) {
-          logger.error('Failed to cleanup Cloudinary artwork:', cleanupError);
+          logger.error('Failed to cleanup B2 artwork:', cleanupError);
         }
       }
 
@@ -181,26 +180,25 @@ export class UploadService {
   }
 
   private async uploadArtwork(
-    artworkBuffer: Buffer, 
-    originalFilename: string, 
-    format?: string
-  ): Promise<{ publicId: string; secureUrl: string }> {
+    artworkBuffer: Buffer,
+    originalFilename: string,
+    format: string | undefined,
+    trackId: string
+  ): Promise<{ storageKey: string }> {
     try {
-      const artworkFilename = `artwork_${originalFilename}.${format || 'jpg'}`;
+      const rawExt = (format || "jpg").split("/").pop() || "jpg";
+      const ext = rawExt.replace(/[^a-z0-9]/gi, "") || "jpg";
+      const artworkFilename = "artwork_" + originalFilename + "." + ext;
       const uploadResult = await storageService.uploadImage(
         artworkBuffer,
         artworkFilename,
-        'music/artwork'
+        trackId
       );
-
-      logger.info('Artwork uploaded successfully', { publicId: uploadResult.publicId });
-      return {
-        publicId: uploadResult.publicId,
-        secureUrl: uploadResult.secureUrl,
-      };
+      logger.info("Artwork uploaded successfully", { storageKey: uploadResult.storageKey });
+      return { storageKey: uploadResult.storageKey };
     } catch (error) {
-      logger.error('Failed to upload artwork:', error);
-      throw new AppError(500, errorCodes.CLOUDINARY_ERROR, 'Failed to upload artwork');
+      logger.error("Failed to upload artwork:", error);
+      throw new AppError(500, errorCodes.STORAGE_ERROR, "Failed to upload artwork");
     }
   }
 

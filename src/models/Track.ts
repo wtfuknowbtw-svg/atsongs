@@ -20,7 +20,9 @@ export interface ITrack extends Document {
   channels?: number;
   fileSize: number;
   artwork?: string;
+  artworkKey?: string;
   cloudinaryArtworkPublicId?: string;
+  storageKey?: string;
   cloudinaryPublicId?: string;
   cloudinaryResourceType?: string;
   cloudinaryFormat?: string;
@@ -107,8 +109,18 @@ const trackSchema = new Schema<ITrack>(
     artwork: {
       type: String,
     },
+    artworkKey: {
+      type: String,
+      required: false,
+    },
     cloudinaryArtworkPublicId: {
       type: String,
+    },
+    storageKey: {
+      type: String,
+      required: false,
+      unique: true,
+      sparse: true,
     },
     cloudinaryPublicId: {
       type: String,
@@ -169,5 +181,7 @@ trackSchema.index({ status: 1 });
 trackSchema.index({ importStatus: 1 });
 trackSchema.index({ createdAt: -1 });
 trackSchema.index({ artist: 1, status: 1 });
+// Private-bucket lookups (shared-artwork check on delete).
+trackSchema.index({ artworkKey: 1 }, { sparse: true });
 
 export const Track = mongoose.model<ITrack>('Track', trackSchema);

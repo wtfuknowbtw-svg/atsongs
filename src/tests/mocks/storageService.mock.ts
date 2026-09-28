@@ -2,41 +2,36 @@ import { UploadResult } from '../../services/storageService';
 
 export const mockStorageService = {
   uploadAudio: jest.fn().mockResolvedValue({
-    publicId: 'test-public-id',
-    resourceType: 'video',
+    storageKey: 'audio/test-track-id.mp3',
+    resourceType: 'audio',
     format: 'mp3',
-    version: '1234567890',
-    url: 'https://res.cloudinary.com/test/audio.mp3',
-    secureUrl: 'https://res.cloudinary.com/test/audio.mp3',
     bytes: 1024,
+    contentType: 'audio/mpeg',
     duration: 180,
   } as UploadResult),
 
   uploadImage: jest.fn().mockResolvedValue({
-    publicId: 'test-artwork-id',
+    storageKey: 'artwork/test-track-id.jpg',
     resourceType: 'image',
     format: 'jpg',
-    version: '1234567890',
-    url: 'https://res.cloudinary.com/test/artwork.jpg',
-    secureUrl: 'https://res.cloudinary.com/test/artwork.jpg',
     bytes: 512,
+    contentType: 'image/jpeg',
     width: 500,
     height: 500,
   } as UploadResult),
 
+  deleteObject: jest.fn().mockResolvedValue(true),
+
   deleteResource: jest.fn().mockResolvedValue(true),
 
-  getResourceUrl: jest.fn().mockReturnValue('https://res.cloudinary.com/test/audio.mp3'),
+  getPresignedGetUrl: jest.fn().mockResolvedValue('https://b2.test/file/test-place/stream?sig=test'),
 
-  getSignedUrl: jest.fn().mockResolvedValue('https://res.cloudinary.com/test/audio.mp3?expires=123'),
+  getSignedUrl: jest.fn().mockResolvedValue('https://b2.test/file/test-place/stream?sig=test'),
 
   resourceExists: jest.fn().mockResolvedValue(true),
 
   getResourceMetadata: jest.fn().mockResolvedValue({
-    public_id: 'test-public-id',
-    resource_type: 'video',
-    format: 'mp3',
-    bytes: 1024,
-    duration: 180,
+    ContentLength: 1024,
+    ContentType: 'audio/mpeg',
   }),
 };

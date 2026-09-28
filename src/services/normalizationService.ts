@@ -143,14 +143,14 @@ export class NormalizationService {
   }
 
   /**
-   * Update album artwork reference
+   * Update album artwork reference with the private-bucket artworkKey.
+   * Album.artwork (legacy public Cloudinary URL) is left untouched.
    */
-  async updateAlbumArtwork(albumId: mongoose.Types.ObjectId, artworkUrl: string, cloudinaryPublicId: string): Promise<void> {
+  async updateAlbumArtwork(albumId: mongoose.Types.ObjectId, artworkKey: string): Promise<void> {
     await Album.findByIdAndUpdate(albumId, {
-      artwork: artworkUrl,
-      cloudinaryPublicId,
+      artworkKey,
     });
-    logger.info('Updated album artwork', { albumId });
+    logger.info('Updated album artwork', { albumId, artworkKey });
   }
 }
 

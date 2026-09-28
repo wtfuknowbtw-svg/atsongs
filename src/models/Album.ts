@@ -8,6 +8,7 @@ export interface IAlbum extends Document {
   year?: number;
   genre?: string;
   artwork?: string;
+  artworkKey?: string;
   cloudinaryPublicId?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +44,10 @@ const albumSchema = new Schema<IAlbum>(
     },
     artwork: {
       type: String,
+    },
+    artworkKey: {
+      type: String,
+      required: false,
     },
     cloudinaryPublicId: {
       type: String,

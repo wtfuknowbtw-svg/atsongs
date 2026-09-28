@@ -33,81 +33,70 @@ export class AdminController {
         throw new AppError(404, errorCodes.NOT_FOUND, 'Track not found');
       }
 
-      // Delete audio from Cloudinary if it exists
+      // Remove the audio object from B2 (log key only, never URLs/secrets).
       let audioDeleted = true;
-      if (track.cloudinaryPublicId) {
-        audioDeleted = await storageService.deleteResource(
-          track.cloudinaryPublicId,
-          track.cloudinaryResourceType
-        );
+      if (track.storageKey) {
+        audioDeleted = await storageService.deleteObject(track.storageKey);
 
         if (!audioDeleted) {
-          logger.warn('Failed to delete Cloudinary audio resource', { 
-            publicId: track.cloudinaryPublicId 
+          logger.warn('Failed to delete B2 audio object', {
+            storageKey: track.storageKey,
           });
         }
       }
 
-      // Handle artwork deletion if it's not shared
+      // Remove artwork only when no other active track shares the same key.
+      // Shared artwork is per-trackId keys today, so this is normally 0 — the
+      // refcount check stays so a future shared key is still safe.
       let artworkDeleted = false;
-      if (track.cloudinaryArtworkPublicId) {
-        // Check if artwork is shared with other tracks
+      if (track.artworkKey) {
         const artworkUsage = await Track.countDocuments({
-          cloudinaryArtworkPublicId: track.cloudinaryArtworkPublicId,
+          artworkKey: track.artworkKey,
           _id: { $ne: id },
-          status: 'active'
+          status: 'active',
         });
 
         if (artworkUsage === 0) {
-          // Artwork is not shared, safe to delete
-          artworkDeleted = await storageService.deleteResource(
-            track.cloudinaryArtworkPublicId,
-            'image'
-          );
+          artworkDeleted = await storageService.deleteObject(track.artworkKey);
 
           if (!artworkDeleted) {
-            logger.warn('Failed to delete Cloudinary artwork resource', { 
-              publicId: track.cloudinaryArtworkPublicId 
+            logger.warn('Failed to delete B2 artwork object', {
+              storageKey: track.artworkKey,
             });
-          } else {
-            // Update album artwork reference if this was the album's artwork
-            if (track.albumId) {
-              const { Album } = await import('../models');
-              const album = await Album.findById(track.albumId);
-              if (album && album.cloudinaryPublicId === track.cloudinaryArtworkPublicId) {
-                await Album.findByIdAndUpdate(track.albumId, {
-                  artwork: null,
-                  cloudinaryPublicId: null,
-                });
-                logger.info('Removed artwork from album', { albumId: track.albumId });
-              }
+          } else if (track.albumId) {
+            // Clear the album row only if it still points at this track's key.
+            const { Album } = await import('../models');
+            const album = await Album.findById(track.albumId);
+            if (album && (album as any).artworkKey === track.artworkKey) {
+              await Album.findByIdAndUpdate(track.albumId, {
+                artwork: null,
+                artworkKey: null,
+              });
+              logger.info('Removed artwork from album', { albumId: track.albumId });
             }
           }
         } else {
-          logger.info('Artwork is shared with other tracks, skipping deletion', { 
-            publicId: track.cloudinaryArtworkPublicId,
-            usageCount: artworkUsage
+          logger.info('Artwork is shared with other tracks, skipping deletion', {
+            storageKey: track.artworkKey,
+            usageCount: artworkUsage,
           });
         }
       }
 
-      // Mark track as deleted instead of removing it completely
-      await Track.findByIdAndUpdate(id, {
-        status: 'deleted',
-        importStatus: 'deleted',
-      });
+      // Remove the DB record as well as the B2 object(s).
+      await Track.findByIdAndDelete(id);
 
-      logger.info('Track deleted successfully', { 
-        trackId: id, 
+      logger.info('Track deleted successfully', {
+        trackId: id,
         userId,
         audioDeleted,
-        artworkDeleted
+        artworkDeleted,
       });
 
-      res.status(200).json(successResponse({ 
+      res.status(200).json(successResponse({
         message: 'Track deleted successfully',
         audioDeleted,
-        artworkDeleted
+        artworkDeleted,
       }));
     } catch (error) {
       next(error);
