@@ -2,11 +2,24 @@ import { v2 as cloudinary } from 'cloudinary';
 import { config } from '../config';
 import logger from '../utils/logger';
 
-cloudinary.config({
-  cloud_name: config.cloudinary.cloudName,
-  api_key: config.cloudinary.apiKey,
-  api_secret: config.cloudinary.apiSecret,
-});
+// Legacy Cloudinary storage is being replaced by Backblaze B2.
+// Only configure when all CLOUDINARY_* vars are present so the server
+// can boot without them (e.g. production runs on B2_* only).
+if (
+  config.cloudinary.cloudName &&
+  config.cloudinary.apiKey &&
+  config.cloudinary.apiSecret
+) {
+  cloudinary.config({
+    cloud_name: config.cloudinary.cloudName,
+    api_key: config.cloudinary.apiKey,
+    api_secret: config.cloudinary.apiSecret,
+  });
+} else {
+  logger.warn(
+    'CLOUDINARY_* env vars not set; Cloudinary storage is disabled (B2 is the active storage).'
+  );
+}
 
 export interface UploadResult {
   publicId: string;

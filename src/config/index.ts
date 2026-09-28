@@ -12,9 +12,17 @@ export const config = {
     refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
   },
   cloudinary: {
+    // Legacy (Cloudinary storage is being replaced by Backblaze B2).
+    // Keep optional so the server boots without CLOUDINARY_* set.
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',
     apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+  },
+  b2: {
+    keyId: process.env.B2_KEY_ID || '',
+    appKey: process.env.B2_APP_KEY || '',
+    endpoint: process.env.B2_ENDPOINT || '',
+    bucket: process.env.B2_BUCKET || '',
   },
   upload: {
     maxFileSize: parseInt(process.env.MAX_UPLOAD_SIZE || '52428800', 10), // 50MB default
@@ -32,9 +40,10 @@ export const validateConfig = () => {
     'MONGODB_URI',
     'JWT_SECRET',
     'JWT_REFRESH_SECRET',
-    'CLOUDINARY_CLOUD_NAME',
-    'CLOUDINARY_API_KEY',
-    'CLOUDINARY_API_SECRET',
+    'B2_KEY_ID',
+    'B2_APP_KEY',
+    'B2_ENDPOINT',
+    'B2_BUCKET',
   ];
 
   const missing = required.filter(key => !process.env[key]);

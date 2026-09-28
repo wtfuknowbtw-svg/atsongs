@@ -29,7 +29,16 @@ services:
         value: 900000
       - key: RATE_LIMIT_MAX
         value: 100
-      # Optional — add Cloudinary keys in Render dashboard if you need music upload
+      - key: B2_KEY_ID
+        sync: false   # Set in Render dashboard → Backblaze B2 application key ID
+      - key: B2_APP_KEY
+        sync: false   # Set in Render dashboard → Backblaze B2 application key
+      - key: B2_ENDPOINT
+        sync: false   # e.g. https://s3.us-west-004.backblazeb2.com (set in Render dashboard)
+      - key: B2_BUCKET
+        sync: false   # Set in Render dashboard → B2 bucket name
+      # Legacy (optional) — Cloudinary storage is replaced by Backblaze B2;
+      # leave unset unless you still need the old Cloudinary path.
       # - key: CLOUDINARY_CLOUD_NAME
       # - key: CLOUDINARY_API_KEY
       # - key: CLOUDINARY_API_SECRET
