@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { uploadService } from '../services/uploadService';
 import { Track } from '../models';
 import { AppError } from '../middleware/errorHandler';
@@ -5,46 +6,65 @@ import { mockStorageService } from './mocks/storageService.mock';
 
 jest.mock('../services/storageService');
 jest.mock('../services/normalizationService');
+// music-metadata is ESM-only; keep it out of the CommonJS test runtime.
+jest.mock('../services/metadataService');
+
+const MOCK_ARTIST_ID = new mongoose.Types.ObjectId().toHexString();
+const MOCK_ALBUM_ID = new mongoose.Types.ObjectId().toHexString();
+const MOCK_GENRE_ID = new mongoose.Types.ObjectId().toHexString();
+const MOCK_USER_ID = new mongoose.Types.ObjectId().toHexString();
+
+const createMockFile = (): Express.Multer.File =>
+  ({
+    fieldname: 'file',
+    originalname: 'test-song.mp3',
+    encoding: '7bit',
+    mimetype: 'audio/mpeg',
+    size: 1024 * 1024,
+    buffer: Buffer.alloc(1024 * 1024),
+  }) as Express.Multer.File;
 
 describe('UploadService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    const metadataService = require('../services/metadataService').metadataService;
+    metadataService.getFileExtension.mockReturnValue('mp3');
+    metadataService.calculateFileHash.mockReturnValue('test-file-hash');
+    metadataService.extractMetadata.mockResolvedValue({
+      title: 'Test Song',
+      artist: 'Test Artist',
+      album: 'Test Album',
+      duration: 180,
+      hasArtwork: false,
+    });
+
+    const normalizationService = require('../services/normalizationService').normalizationService;
+    normalizationService.normalizeTrackMetadata.mockResolvedValue({
+      artistId: MOCK_ARTIST_ID,
+      albumId: MOCK_ALBUM_ID,
+      genreId: MOCK_GENRE_ID,
+      isArtistNew: true,
+      isAlbumNew: true,
+      isGenreNew: true,
+    });
   });
 
   describe('uploadTrack', () => {
     it('should successfully upload a valid track', async () => {
-      const mockFile = {
-        fieldname: 'file',
-        originalname: 'test-song.mp3',
-        encoding: '7bit',
-        mimetype: 'audio/mpeg',
-        size: 1024 * 1024,
-        buffer: Buffer.alloc(1024 * 1024),
-      } as Express.Multer.File;
+      const mockFile = createMockFile();
 
       const mockStorageService = require('../services/storageService').storageService;
       mockStorageService.uploadAudio.mockResolvedValue({
-        publicId: 'test-public-id',
-        resourceType: 'video',
+        storageKey: 'audio/test-track-id.mp3',
+        resourceType: 'audio',
         format: 'mp3',
-        version: '1234567890',
-        url: 'https://res.cloudinary.com/test/audio.mp3',
-        secureUrl: 'https://res.cloudinary.com/test/audio.mp3',
         bytes: 1024 * 1024,
+        contentType: 'audio/mpeg',
         duration: 180,
       });
 
-      const mockNormalizationService = require('../services/normalizationService').normalizationService;
-      mockNormalizationService.normalizeTrackMetadata.mockResolvedValue({
-        artistId: 'artist-id',
-        albumId: 'album-id',
-        genreId: 'genre-id',
-        isArtistNew: true,
-        isAlbumNew: true,
-        isGenreNew: true,
-      });
-
-      const result = await uploadService.uploadTrack(mockFile, 'user-id');
+      const result = await uploadService.uploadTrack(mockFile, MOCK_USER_ID);
 
       expect(result.track).toBeDefined();
       expect(result.track.title).toBeDefined();
@@ -53,49 +73,35 @@ describe('UploadService', () => {
     });
 
     it('should detect duplicate files', async () => {
-      const mockFile = {
-        fieldname: 'file',
-        originalname: 'test-song.mp3',
-        encoding: '7bit',
-        mimetype: 'audio/mpeg',
-        size: 1024 * 1024,
-        buffer: Buffer.alloc(1024 * 1024),
-      } as Express.Multer.File;
+      const mockFile = createMockFile();
 
-      // Mock existing track
+      // Mock existing track with the same hash the metadata service reports.
       await Track.create({
         title: 'Existing Track',
         artist: 'Test Artist',
         duration: 180,
         fileFormat: 'mp3',
         fileSize: 1024 * 1024,
-        cloudinaryPublicId: 'existing-id',
-        cloudinaryResourceType: 'video',
-        cloudinaryFormat: 'mp3',
-        cloudinaryVersion: '123',
+        storageKey: 'audio/existing-id.mp3',
         originalFilename: 'test-song.mp3',
-        fileHash: 'hash',
+        fileHash: 'test-file-hash',
         importStatus: 'ready',
         status: 'active',
       });
 
-      await expect(uploadService.uploadTrack(mockFile, 'user-id')).rejects.toThrow('DUPLICATE_TRACK');
+      await expect(uploadService.uploadTrack(mockFile, MOCK_USER_ID)).rejects.toMatchObject({
+        statusCode: 409,
+        code: 'DUPLICATE_TRACK',
+      });
     });
 
-    it('should handle Cloudinary upload failure', async () => {
-      const mockFile = {
-        fieldname: 'file',
-        originalname: 'test-song.mp3',
-        encoding: '7bit',
-        mimetype: 'audio/mpeg',
-        size: 1024 * 1024,
-        buffer: Buffer.alloc(1024 * 1024),
-      } as Express.Multer.File;
+    it('should handle B2 upload failure', async () => {
+      const mockFile = createMockFile();
 
       const mockStorageService = require('../services/storageService').storageService;
-      mockStorageService.uploadAudio.mockRejectedValue(new Error('Cloudinary error'));
+      mockStorageService.uploadAudio.mockRejectedValue(new Error('B2 error'));
 
-      await expect(uploadService.uploadTrack(mockFile, 'user-id')).rejects.toThrow('Failed to upload track');
+      await expect(uploadService.uploadTrack(mockFile, MOCK_USER_ID)).rejects.toThrow('Failed to upload track');
     });
   });
 });

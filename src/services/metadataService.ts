@@ -98,7 +98,10 @@ export class MetadataService {
   }
 
   getFileExtension(filename: string): string {
-    return filename.split('.').pop()?.toLowerCase() || '';
+    // No dot (or a dotfile like ".hidden") means there is no extension.
+    const separatorIndex = filename.lastIndexOf('.');
+    if (separatorIndex <= 0) return '';
+    return filename.slice(separatorIndex + 1).toLowerCase();
   }
 
   formatDuration(seconds: number): string {

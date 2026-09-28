@@ -107,6 +107,7 @@ export class FileValidationService {
   sanitizeFilename(filename: string): string {
     return filename
       .replace(/[<>:"|?*]/g, '_')
+      .replace(/[\\/]/g, '_')
       .replace(/\.\./g, '_')
       .replace(/^\./, '_')
       .trim();
